@@ -1,0 +1,5 @@
+# Famous 9x9 Sudoku puzzles. One per line: <81-char grid, row-major, '.' = empty> <name>
+# Each was checked by exhaustive search to have exactly one solution.
+..3.2.6..9..3.5..1..18.64....81.29..7.......8..67.82....26.95..8..2.3..9..5.1.3.. euler-96-grid-01
+1....7.9..3..2...8..96..5....53..9...1..8...26....4...3......1..4......7..7...3.. ai-escargot-2006
+8..........36......7..9.2...5...7.......457.....1...3...1....68..85...1..9....4.. inkala-2012
