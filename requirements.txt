@@ -1,0 +1,13 @@
+# LogicPuzzleX: Python 3.12
+# Install: uv pip install -r requirements.txt   (or: pip install -r requirements.txt)
+
+# Web app (API + static UI)
+fastapi==0.143.3
+uvicorn==0.54.0
+
+# Experiments and report figures
+numpy==2.5.4
+matplotlib==3.11.2
+
+# Tests
+pytest==9.1.1

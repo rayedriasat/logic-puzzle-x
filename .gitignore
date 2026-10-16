@@ -1,0 +1,55 @@
+# --- Course materials (private, never publish) ---
+# Listed by exact name so the report PDFs in others/ are still tracked.
+/CSE_440__AI_.pdf
+/Course Manual - Theory.pdf
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Tool caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# --- Secrets ---
+.env
+.env.*
+
+# --- Large / raw datasets (see data/README.md) ---
+data/raw/
+
+# --- LaTeX build files (if the report is compiled locally) ---
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.toc
+
+# --- Office lock files (e.g. ~$final_presentation.pptx) ---
+~$*
+
+# --- OS, editors, tooling ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.log
+.claude/
