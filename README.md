@@ -107,10 +107,10 @@ Organized as the course manual requires:
 
 | Name | Student ID | Role |
 |---|---|---|
-| ‹Name A› | ‹ID› | CSP engine and search |
-| ‹Name B› | ‹ID› | Puzzle modeling, propagation, generator |
-| ‹Name C› | ‹ID› | Logic track, explanations, experiments |
-| ‹Name D› | ‹ID› | Web app, demo video, integration |
+| Md Shihabul Alam Shihab | 2233115642 | CSP engine and search |
+| Rayed Riasat Rabbi  | 2311649042 | Puzzle modeling, propagation, generator |
+| Rifat Imtiaze Ruddro | 2311474642 | Logic track, explanations, experiments |
+| Sayma Akhter Snigdha | 1620838042 | Web app, demo video, integration |
 
 ## References
 
