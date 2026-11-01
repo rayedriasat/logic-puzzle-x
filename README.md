@@ -6,23 +6,24 @@
 
 An AI system that solves **Sudoku** and **Kakuro** as constraint satisfaction problems, using backtracking search, constraint propagation and propositional logic, and shows its reasoning live in the browser.
 
-*CSE 440: Artificial Intelligence · North South University · Section ‹X› · Group ‹N›*
+*CSE 440: Artificial Intelligence · North South University · Section 1 · Group 2*
 
 </div>
 
-> **Status: in development.** The roadmap is in [plan.md](plan.md). A demo GIF and the one-minute video will appear here in the final phase.
+> **Status: the Sudoku track is complete; Kakuro is next.** The roadmap is in [plan.md](plan.md). A demo GIF and the one-minute video will appear here in the final phase.
 
 ## Highlights
 
 | Feature | What it does | Status |
 |---|---|---|
-| Watch it think | Animated replay of the search: candidates vanish as constraints propagate, cells flash on backtrack | Planned (Phase 1) |
-| Algorithm race | Naive backtracking vs forward checking vs MRV vs MAC on the same puzzle, side by side | Planned (Phase 2) |
-| One engine, many puzzles | Sudoku 4×4 to 16×16 and Kakuro, all modeled as factor graphs | Planned (Phases 1–2) |
-| Logic track | Sudoku → CNF, solved with our DPLL; uniqueness proved by entailment | Planned (Phase 2) |
-| Explain mode | Every deduction in plain English ("r5c3 = 7: only place in box 4 for a 7") | Planned (Phase 3) |
-| Generator | New puzzles with exactly one solution, graded Easy → Extreme | Planned (Phase 3) |
-| Benchmarks | Reproducible experiments behind every figure in our report | Planned (Phases 1–3) |
+| Play | Solve it yourself while the engine checks after every move that the board can still be finished, with reasoned hints | Done |
+| Watch it think | Animated replay of the search: candidates vanish as constraints propagate, cells flash on backtrack | Done |
+| Algorithm race | Naive backtracking vs forward checking vs MRV vs MAC on the same puzzle, side by side | Done |
+| One engine, many puzzles | Sudoku 4×4 to 16×16 and Kakuro, all modeled as factor graphs | Sudoku done; Kakuro planned (Phase 2) |
+| Logic track | Sudoku → CNF, solved with our DPLL; uniqueness proved by entailment | Done |
+| Explain mode | Every deduction in plain English ("r5c3 = 7: only place in box 4 for a 7") | Done |
+| Generator | New puzzles with exactly one solution, graded Easy → Extreme | Done (Sudoku) |
+| Benchmarks | Reproducible experiments behind every figure in our report | Done for Sudoku (E1–E5) |
 
 ## How it works
 
@@ -43,6 +44,66 @@ A 9×9 Sudoku has 81 variables and 810 binary "≠" factors; Kakuro adds a sum f
 | `mac` | Maintaining arc consistency (AC-3 after every assignment) |
 | `mac+` | + Global all-different reasoning (hidden singles) |
 | `dpll` | Propositional encoding solved with DPLL (unit propagation) |
+
+## Results
+
+Measured on a 4-vCPU Kaggle session with a 10 s limit per run; each time is the median of 3 runs. The solvers are pure Python, so the times compare techniques and say little about absolute speed. The raw data and figures are in [data/results/](data/results/), and the Benchmarks tab shows the same numbers.
+
+**E1: what each technique buys** (1000 rated puzzles, 250 per difficulty bucket)
+
+| Algorithm | Median nodes | Median ms | Timed out |
+|---|---:|---:|---:|
+| `bt` | 17,890 | 4,185 | 32.9% |
+| `fc` | 5,446 | 406 | 2.3% |
+| `mrv` | 210 | 27 | 0% |
+| `lcv` | 219 | 30 | 0% |
+| `mac` | 113 | 44 | 0% |
+| `mac+` | 58 | 24 | 0% |
+| `dpll` | 448 | 103 | 0% |
+
+The `bt` and `fc` figures are lower bounds, because a run that hits the limit counts only the nodes it reached.
+
+![Search nodes per algorithm in each difficulty bucket](data/results/e1_nodes.png)
+
+How the predictions in our plan held up:
+
+| Prediction | Result |
+|---|---|
+| MRV gives the largest single jump | **Confirmed.** 23× fewer nodes than forward checking (paired median). No other step reaches 3×. |
+| Naive backtracking times out on the hardest bucket while MAC solves everything in milliseconds | **Half right.** MAC solved all 1000 (median 44 ms, worst 634 ms). But `bt` timed out on 30% of easy puzzles and 36% of extreme ones, so its failures barely follow difficulty. |
+| With `mac+`, most easy puzzles need no search | **Confirmed.** Zero backtracks on 100% of easy, 42% of medium, 33% of hard and 18% of extreme puzzles. |
+| Effort correlates with difficulty, but imperfectly | **Confirmed.** Spearman ρ runs from 0.118 (`bt`) to 0.475 (`mac+`). The rating comes from an automated solver rather than from people, so this is not direct evidence about human difficulty. `bt` and `fc` are scored only on the puzzles they solved. |
+
+Two results we did not predict: LCV adds nothing here (paired median 1.00×), and MAC roughly halves the nodes yet runs slower than MRV (44 ms against 27 ms). Hidden singles are what pay off: `mac+` is the fastest configuration, and its slowest puzzle took 67 ms.
+
+**E3: one puzzle, three formulations** (200 rated puzzles)
+
+| Formulation | Algorithm | Variables | Factors or clauses | Median nodes | Median ms |
+|---|---|---:|---:|---:|---:|
+| Binary ≠ | `mac` | 81 | 810 | 124 | 49 |
+| Global AllDifferent | `mac` | 81 | 27 | 124 | 24 |
+| Global + hidden singles | `mac+` | 81 | 27 | 58 | 25 |
+| CNF | `dpll` | 729 | 11,745 | 441 | 108 |
+| Extended CNF | `dpll` | 729 | 11,988 | 73 | 34 |
+
+Global factors keep the same search and halve the time. The 243 redundant clauses of the extended CNF cut DPLL's nodes sixfold.
+
+**E4: scaling up** (generated puzzles: 10 at 4×4, 12 at 6×6, 40 at 9×9, 8 at 16×16)
+
+Every algorithm handles 9×9, and only `bt` times out there (12.5%). At 16×16 only `mac+` finishes, in a median 208 ms; the other six hit the limit on all 8 puzzles. Kakuro joins this comparison in Phase 2.
+
+![Median solve time against grid size](data/results/e4_scale.png)
+
+**E5: generator quality** (100 9×9 puzzles per requested grade)
+
+| Requested | Hit rate | Median clues | Median seconds | Proved unique |
+|---|---:|---:|---:|---:|
+| Easy | 100% | 38 | 0.54 | 100% |
+| Medium | 100% | 31 | 0.82 | 100% |
+| Hard | 100% | 25 | 1.88 | 100% |
+| Extreme | 67% | 24 | 16.65 | 100% |
+
+An Extreme request that misses returns the closest grade instead; all 33 misses came back Hard. Uniqueness is proved by DPLL entailment up to 9×9. At 16×16 it rests on `mac+` finding no second solution, because our DPLL has no clause learning and cannot finish that proof. Clue counts follow the generator's target for each grade, so they are a setting and not a finding.
 
 ## Quick start
 
@@ -70,8 +131,8 @@ The web app opens at <http://127.0.0.1:8000>; API docs are at `/docs`.
 
 ```text
 python main.py                                   # launch the web app
-python main.py solve "<puzzle>" --algo mac       # solve from the command line
-python main.py bench --algos bt,fc,mrv,mac       # run experiments, write data/results/
+python main.py solve "<puzzle>" --algo mac       # solve from the command line (add --explain for the reasoning)
+python main.py bench --exp e1                    # run an experiment, write data/results/ (see data/README.md)
 python main.py generate --difficulty hard        # create a puzzle with a unique solution
 python -m pytest -q                              # run the tests
 ```
@@ -91,17 +152,21 @@ Organized as the course manual requires:
 
 ## Code tour
 
-*Filled in as modules land.* This table is the route for our 4-minute code walkthrough, with links straight to the key functions.
+This table is the route for our 4-minute code walkthrough.
 
 | Step | File | What to look at |
 |---|---|---|
 | 1 | [main.py](main.py) | CLI and how the app starts |
-| 2 | [support/csp.py](support/csp.py) | Factor graph model, `weight(x)` |
-| 3 | [support/solver.py](support/solver.py) | Backtracking search and heuristics |
-| 4 | [support/propagation.py](support/propagation.py) | Forward checking, AC-3 |
-| 5 | [support/sudoku.py](support/sudoku.py) · [support/kakuro.py](support/kakuro.py) | Puzzle → factors |
-| 6 | [support/sat.py](support/sat.py) | CNF encoding, DPLL |
-| 7 | [support/server.py](support/server.py) · [support/web/](support/web/) | API and UI |
+| 2 | [support/csp.py](support/csp.py) | Factor graph model, `weight(x)`, `delta` |
+| 3 | [support/solver.py](support/solver.py) | One backtracking search; `ALGORITHMS` is the whole ladder |
+| 4 | [support/propagation.py](support/propagation.py) | Forward checking, AC-3, hidden singles |
+| 5 | [support/trace.py](support/trace.py) | The event log the UI replays |
+| 6 | [support/sudoku.py](support/sudoku.py) | Puzzle → factors |
+| 7 | [support/sat.py](support/sat.py) | CNF encoding, DPLL, uniqueness by entailment |
+| 8 | [support/explain.py](support/explain.py) · [support/generator.py](support/generator.py) | Deductions in English; unique graded puzzles |
+| 9 | [support/benchmark.py](support/benchmark.py) · [support/figures.py](support/figures.py) | Experiments E1–E5 |
+| 10 | [support/server.py](support/server.py) · [support/web/](support/web/) | API and UI (`replay.js` drives every animation) |
+| 11 | [support/tests/](support/tests/) | pytest suite, run by CI on every push |
 
 ## Team
 

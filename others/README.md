@@ -10,4 +10,6 @@ Required by the CSE 440 Course Manual. Every file must be on GitHub **before the
 | `final_report.pdf` | 8-page final report, IEEE double-column | Before Class 23 (printed copy at the very start of class) |
 | `demo_video.mp4` | One-minute screen-capture demo of the app | Before Class 23 |
 
+`src/` holds the LaTeX source of the update report; build it with `pdflatex update_report.tex` from that folder.
+
 Reminders: report header (course & section, group number, all names and IDs) above the top margin of page 1, no title page; slide footer with group number and all names on every slide; keep the video under 50 MB.

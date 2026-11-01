@@ -3,15 +3,6 @@
 Course link: Vol. 3, factor graphs and CSPs (scope, arity, weight, dependent factors D(x, X_i)).
 Owner: Member A. Phase 1 (plan.md sections 3.3 and 6).
 
-Planned API:
-    Factor(scope, predicate, name)   .is_satisfied(assignment) -> bool   .revise(domains) -> removals
-    CSP(variables, domains, factors) .weight(assignment) -> 0 | 1         .dependent_factors(assignment, var)
-"""
-"""Factor-graph CSP model: variables, domains, factors and weight(x).
-
-Course link: Vol. 3, factor graphs and CSPs (scope, arity, weight, dependent factors D(x, X_i)).
-Owner: Member A. Phase 1 (plan.md sections 3.3 and 6).
-
 API:
     Factor(scope, predicate, name)   .is_satisfied(assignment) -> bool   .revise(domains) -> removals
     CSP(domains, factors)            .weight(assignment) -> 0 | 1        .dependent_factors(assignment, var)
@@ -25,6 +16,8 @@ from typing import Callable
 
 class Factor:
     """f_j(x) in {0, 1}. `predicate` receives the values of `scope` in scope order."""
+
+    singleton_only = False  # True if revise() can only act once a domain is down to one value
 
     def __init__(self, scope, predicate: Callable[..., bool], name: str = "factor"):
         self.scope = tuple(scope)
@@ -69,8 +62,14 @@ class Factor:
 class NotEqual(Factor):
     """Binary factor [X_a != X_b]."""
 
-    def __init__(self, a: int, b: int):
-        super().__init__((a, b), lambda x, y: x != y, "neq")
+    singleton_only = True
+
+    def __init__(self, a: int, b: int, name: str = "neq"):
+        super().__init__((a, b), None, name)
+
+    def is_satisfied(self, assignment: dict) -> bool:
+        a, b = self.scope
+        return assignment[a] != assignment[b]
 
     def revise(self, domains: list) -> list:
         a, b = self.scope
@@ -85,10 +84,16 @@ class NotEqual(Factor):
 
 
 class AllDifferent(Factor):
-    """Global factor: all variables in the scope take distinct values."""
+    """Global factor: all variables in the scope take distinct values.
 
-    def __init__(self, scope, name: str = "alldiff"):
+    `permutation` means every domain value must be used (a Sudoku unit, not a Kakuro run).
+    """
+
+    singleton_only = True
+
+    def __init__(self, scope, name: str = "alldiff", permutation: bool = False):
         super().__init__(scope, lambda *vals: len(set(vals)) == len(vals), name)
+        self.permutation = permutation
 
     def revise(self, domains: list) -> list:
         """Singleton elimination, repeated until nothing changes."""
@@ -121,6 +126,7 @@ class CSP:
             for v in f.scope:
                 self.factors_of[v].append(f)
                 self.neighbors[v].update(u for u in f.scope if u != v)
+        self.given = {}                                  # conditioned variables
         self.checks = 0                                  # constraint-check counter for stats
 
     def copy_domains(self) -> list:
@@ -129,6 +135,7 @@ class CSP:
     def condition(self, var: int, value) -> None:
         """Fix a given: X_var = value. Its domain becomes a singleton."""
         self.domains[var] = {value}
+        self.given[var] = value
 
     def weight(self, assignment: dict) -> int:
         """prod f_j(x) over factors whose scope is fully assigned (exact weight for a full x)."""

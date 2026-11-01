@@ -1,0 +1,8 @@
+algo,n_solved,spearman,zero_backtrack_easy,zero_backtrack_medium,zero_backtrack_hard,zero_backtrack_extreme
+bt,671,0.118,0.0,0.0,0.0,0.0
+fc,977,0.154,0.0,0.0,0.0,0.0
+mrv,1000,0.337,0.108,0.06,0.04,0.016
+lcv,1000,0.327,0.096,0.076,0.028,0.02
+mac,1000,0.308,0.096,0.076,0.028,0.02
+mac+,1000,0.475,1.0,0.42,0.328,0.184
+dpll,1000,0.263,0.108,0.028,0.02,0.016

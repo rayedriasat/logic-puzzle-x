@@ -12,6 +12,7 @@ import argparse
 import sys
 import threading
 import webbrowser
+from pathlib import Path
 
 ALGORITHMS = ["bt", "fc", "mrv", "lcv", "mac", "mac+", "dpll"]
 PUZZLE_TYPES = ["sudoku", "kakuro"]
@@ -32,14 +33,59 @@ def serve(args: argparse.Namespace) -> int:
     return 0
 
 
-def planned(name: str):
-    """Placeholder for sub-commands that are scheduled in plan.md but not built yet."""
+def kakuro_planned() -> int:
+    print("Kakuro is planned but not implemented yet; see plan.md, section 6.")
+    return 2
 
-    def run(args: argparse.Namespace) -> int:
-        print(f"'{name}' is planned but not implemented yet; see plan.md, section 6.")
+
+def read_puzzle(text: str) -> str:
+    """The argument itself, or the first puzzle line of a file in the data/ format."""
+    path = Path(text)
+    if not path.is_file():
+        return text
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return next(line.split()[0] for line in lines if line.strip() and not line.startswith("#"))
+
+
+def solve(args: argparse.Namespace) -> int:
+    if args.type == "kakuro":
+        return kakuro_planned()
+    from support.explain import explain
+    from support.sudoku import format_grid, parse, solution_string, solve_grid
+    from support.trace import Tracer
+
+    try:
+        grid = parse(read_puzzle(args.puzzle))
+    except ValueError as error:
+        print(f"Invalid puzzle: {error}")
         return 2
+    tracer = Tracer(max_events=100_000 if args.explain else 0)
+    result = solve_grid(grid, args.algo, tracer, args.timeout)
+    if args.explain:
+        for step in explain(tracer.events, grid):
+            print(step["text"])
+    if result.solution:
+        print(format_grid(solution_string(result.solution, grid.size), grid.box))
+    print(result.status, " ".join(f"{key}={value}" for key, value in result.stats.items()))
+    return 0 if result.status == "solved" else 1
 
-    return run
+
+def bench(args: argparse.Namespace) -> int:
+    from support.benchmark import run
+
+    print(run(args.exp, args.algos.split(","), args.limit, args.timeout, args.workers, args.raw))
+    return 0
+
+
+def generate(args: argparse.Namespace) -> int:
+    if args.type == "kakuro":
+        return kakuro_planned()
+    from support.generator import generate_sudoku
+
+    for _ in range(args.count):
+        puzzle, _, grade = generate_sudoku(args.size, args.difficulty)
+        print(puzzle, grade)
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -60,21 +106,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--type", choices=PUZZLE_TYPES, default="sudoku")
     p.add_argument("--algo", choices=ALGORITHMS, default="mac")
     p.add_argument("--explain", action="store_true", help="print human-readable deductions")
-    p.set_defaults(func=planned("solve"))
+    p.add_argument("--timeout", type=float, default=60.0, help="seconds allowed")
+    p.set_defaults(func=solve)
 
     p = sub.add_parser("bench", help="run experiments and write data/results/")
-    p.add_argument("--exp", default="e1", help="experiment id (e1-e5, see plan.md section 4)")
+    p.add_argument("--exp", default="e1", help="e1-e5 (plan.md section 4), generate, or sample (see data/README.md)")
     p.add_argument("--algos", default="bt,fc,mrv,mac,dpll", help="comma-separated algorithm ids")
     p.add_argument("--limit", type=int, default=200, help="max puzzles per run")
     p.add_argument("--timeout", type=float, default=10.0, help="seconds allowed per puzzle")
-    p.set_defaults(func=planned("bench"))
+    p.add_argument("--workers", type=int, help="worker processes (default: all CPUs)")
+    p.add_argument("--raw", help="raw CSV for --exp sample")
+    p.set_defaults(func=bench)
 
     p = sub.add_parser("generate", help="generate puzzles with a unique solution")
     p.add_argument("--type", choices=PUZZLE_TYPES, default="sudoku")
     p.add_argument("--size", type=int, default=9)
     p.add_argument("--difficulty", choices=DIFFICULTIES, default="medium")
     p.add_argument("--count", type=int, default=1)
-    p.set_defaults(func=planned("generate"))
+    p.set_defaults(func=generate)
 
     return parser
 
