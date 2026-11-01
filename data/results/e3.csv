@@ -1,0 +1,6 @@
+formulation,algo,variables,factors_or_clauses,runs,median_nodes,median_ms,timeout_pct
+binary,mac,81,810,200,124.0,49.334,0.0
+global,mac:global,81,27,200,124.0,24.308,0.0
+global+hidden,mac+,81,27,200,58.0,24.79,0.0
+cnf,dpll,729,11745,200,440.5,107.721,0.0
+cnf-extended,dpll:global,729,11988,200,73.0,34.056,0.0

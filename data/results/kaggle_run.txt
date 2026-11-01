@@ -1,0 +1,80 @@
+Kaggle runs behind data/results/ and data/sudoku/ (rayedriasat/logicpuzzlex-sudoku-bench, private script kernel).
+The solvers are pure Python, so the two T4s stayed idle; only the 4 vCPUs did work. bench used 4 worker processes.
+
+Machine
+-------
+Sat Oct 31 15:13:23 2026
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.178.04             Driver Version: 580.178.04     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla T4                       Off |   00000000:00:04.0 Off |                    0 |
+| N/A   54C    P8             11W /   70W |       0MiB /  15360MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  Tesla T4                       Off |   00000000:00:05.0 Off |                    0 |
+| N/A   52C    P8             11W /   70W |       0MiB /  15360MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           46 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  4
+On-line CPU(s) list:                     0-3
+Vendor ID:                               GenuineIntel
+Model name:                              Intel(R) Xeon(R) CPU @ 2.00GHz
+CPU family:                              6
+Model:                                   85
+Thread(s) per core:                      2
+Core(s) per socket:                      2
+Socket(s):                               1
+Stepping:                                3
+BogoMIPS:                                4000.40
+Hypervisor vendor:                       KVM
+Virtualization type:                     full
+L1d cache:                               64 KiB (2 instances)
+L1i cache:                               64 KiB (2 instances)
+               total        used        free      shared  buff/cache   available
+Mem:              31           1          26           0           4          30
+Swap:              0           0           0
+3.13.15 cpus: 4
+
+Version 1, 31 Oct 2026: sample, e1, e2, e3 here are the committed ones
+----------------------------------------------------------------------
+==> bench --exp sample --raw /kaggle/input/datasets/radcliffe/3-million-sudoku-puzzles-with-ratings/sudoku-3m.csv (budget 900s)
+<== exit 0 after 19s
+==> bench --exp generate --limit 100 (budget 3600s)
+<== exit 0 after 946s
+==> bench --exp e5 (budget 300s)
+<== exit 0 after 2s
+==> bench --exp e4 --limit 40 --timeout 10 --algos bt,fc,mrv,lcv,mac,mac+,dpll (budget 3600s)
+<== exit 0 after 182s
+==> bench --exp e3 --limit 200 --timeout 10 (budget 3600s)
+<== exit 0 after 66s
+==> bench --exp e1 --limit 1000 --timeout 10 --algos bt,fc,mrv,lcv,mac,mac+,dpll (budget 25200s)
+<== exit 0 after 3383s
+==> bench --exp e2 (budget 300s)
+<== exit 0 after 1s
+
+Version 3, 31 Oct 2026: generate, e4, e5 here are the committed ones
+----------------------------------------------------------------------
+Rerun after giving every generated puzzle its own seed, which removed duplicates and filled 6x6 to 12 puzzles.
+Version 2 was the same job. Kaggle cancelled it with no reason given and it produced no output.
+==> bench --exp generate --limit 100 (budget 3600s)
+<== exit 0 after 824s
+==> bench --exp e5 (budget 300s)
+<== exit 0 after 1s
+==> bench --exp e4 --limit 40 --timeout 10 --algos bt,fc,mrv,lcv,mac,mac+,dpll (budget 3600s)
+<== exit 0 after 189s

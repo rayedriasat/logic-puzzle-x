@@ -1,0 +1,5 @@
+requested,puzzles,hit_rate,median_clues,median_seconds,sat_verified_pct
+easy,100,1.0,38.0,0.541,100.0
+medium,100,1.0,31.0,0.818,100.0
+hard,100,1.0,25.0,1.878,100.0
+extreme,100,0.67,24.0,16.649,100.0
