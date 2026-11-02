@@ -1,13 +1,12 @@
-# Only main.py, support/ and data/ (text files) are needed at runtime.
+# The app needs main.py, support/, data/ and the demo video + poster in others/.
 .git
 .github
-others
+others/*
+!others/demo_video.mp4
+!others/demo_poster.jpg
 plan.md
 file.txt
 *.pdf
-*.png
-*.jpg
-*.mp4
 *.pptx
 **/__pycache__
 **/tests

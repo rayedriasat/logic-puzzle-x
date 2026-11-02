@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 COPY --chown=user main.py .
 COPY --chown=user support ./support
 COPY --chown=user data ./data
+COPY --chown=user others/demo_video.mp4 others/demo_poster.jpg ./others/
 
 EXPOSE 7860
 CMD ["python", "main.py", "serve", "--host", "0.0.0.0", "--port", "7860", "--no-browser"]

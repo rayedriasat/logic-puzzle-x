@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -19,6 +20,13 @@ from .trace import Tracer
 
 WEB_DIR = Path(__file__).parent / "web"
 DATA_DIR = Path(__file__).parents[1] / "data" / "sudoku"
+# Files the landing page shows, served from where they live in the repo rather than copied into web/.
+MEDIA = {
+    "demo.mp4": Path(__file__).parents[1] / "others" / "demo_video.mp4",
+    "poster.jpg": Path(__file__).parents[1] / "others" / "demo_poster.jpg",
+    "e1_nodes.png": Path(__file__).parents[1] / "data" / "results" / "e1_nodes.png",
+    "e4_scale.png": Path(__file__).parents[1] / "data" / "results" / "e4_scale.png",
+}
 MAX_CHARS = 1024  # a 16x16 grid with spaces fits; anything longer is not a puzzle we can solve in time
 RACE_TIMEOUT = 4.0
 GENERATE_BUDGET = 25.0
@@ -133,6 +141,14 @@ def generate(request: GenerateRequest) -> dict:
 @app.get("/api/benchmarks")
 def benchmarks() -> dict:
     return benchmark.summary()
+
+
+@app.get("/media/{name}")
+def media(name: str) -> FileResponse:
+    path = MEDIA.get(name)
+    if path is None or not path.exists():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(path)
 
 
 # Mounted last so the /api routes above take priority over static files.
