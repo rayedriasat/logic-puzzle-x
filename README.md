@@ -8,10 +8,13 @@ An AI system that solves **Sudoku** and **Kakuro** as constraint satisfaction pr
 
 *CSE 440: Artificial Intelligence · North South University · Section 1 · Group 2*
 
+[![Watch the LogicPuzzleX demo video](others/demo_poster.jpg)](others/demo_video.mp4)
+
+**[▶ Watch the demo video](others/demo_video.mp4)**
+
 </div>
 
-> **Status: the Sudoku track is complete; Kakuro is next.** The roadmap is in [plan.md](plan.md). A demo GIF and the one-minute video will appear here in the final phase.
-
+> **Status: the Sudoku track is complete; Kakuro is next.** The roadmap is in [plan.md](plan.md).
 ## Highlights
 
 | Feature | What it does | Status |

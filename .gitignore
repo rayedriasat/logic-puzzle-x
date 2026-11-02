@@ -53,3 +53,6 @@ desktop.ini
 *.swp
 *.log
 .claude/
+
+# --- Launch video working files (the final video is in others/) ---
+brag-output/
