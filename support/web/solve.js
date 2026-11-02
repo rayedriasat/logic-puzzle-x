@@ -92,7 +92,9 @@ async function prove(puzzle) {
   const proof = $("solve-proof");
   proof.textContent = "Proving uniqueness with SAT…";
   try {
-    const body = await post("/api/solve", { puzzle: puzzle.grid, algorithm: "mac+", trace: false, prove: true, timeout: 15 });
+    // In-browser Python (static build) runs about 3x slower than the server, so give the proof the API's maximum.
+    const timeout = window.LPX_BACKEND === "pyodide" ? 30 : 15;
+    const body = await post("/api/solve", { puzzle: puzzle.grid, algorithm: "mac+", trace: false, prove: true, timeout });
     if (id !== solve.proofId) return;
     proof.textContent = body.unique === true ? "Unique ✓: KB ∪ {¬s} is unsatisfiable, so KB ⊨ s"
       : body.unique === false ? "Not unique: DPLL found a second solution, so KB ⊭ s"
