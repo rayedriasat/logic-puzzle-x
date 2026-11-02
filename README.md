@@ -140,6 +140,21 @@ python main.py generate --difficulty hard        # create a puzzle with a unique
 python -m pytest -q                              # run the tests
 ```
 
+## Deploy
+
+The whole app (API + UI) runs from one container, so it can be hosted free on a [Hugging Face Space](https://huggingface.co/spaces). Every push to `main` deploys it through [.github/workflows/deploy-hf.yml](.github/workflows/deploy-hf.yml).
+
+One-time setup:
+
+1. On Hugging Face, create a new Space with SDK **Docker** (blank template) and hardware **CPU basic** (free).
+2. Under Hugging Face **Settings → Access Tokens**, create a token with **Write** access.
+3. In this GitHub repo, open **Settings → Secrets and variables → Actions** and add:
+   - secret `HF_TOKEN`: the token
+   - variable `HF_SPACE`: `<hf-username>/<space-name>`
+4. Push to `main`, or run the workflow by hand from the **Actions** tab. The app goes live at `https://<hf-username>-<space-name>.hf.space`.
+
+The workflow uploads only the files the app needs (`Dockerfile`, `main.py`, `support/`, `data/` without images) and uses [deploy/huggingface/README.md](deploy/huggingface/README.md) as the Space's config. To test the container locally: `docker build -t logicpuzzlex . && docker run -p 7860:7860 logicpuzzlex`.
+
 ## Repository structure
 
 Organized as the course manual requires:
