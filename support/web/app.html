@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LogicPuzzleX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" title="Back to the overview">Logic<span>Puzzle</span>X</a>
+    <nav class="tabs" aria-label="Views">
+      <button data-tab="play" aria-selected="true">Play</button>
+      <button data-tab="solve" aria-selected="false">Watch it think</button>
+      <button data-tab="race" aria-selected="false">Race</button>
+      <button data-tab="explain" aria-selected="false">Explain</button>
+      <button data-tab="generate" aria-selected="false">Generate</button>
+      <button data-tab="bench" aria-selected="false">Benchmarks</button>
+    </nav>
+    <p class="status" id="status"><span class="dot"></span><span id="status-text">Checking solver…</span></p>
+    <button class="ghost" id="theme">◐</button>
+  </header>
+
+  <section class="puzzle-bar" id="puzzle-bar" aria-label="Choose a puzzle">
+    <label>Puzzle
+      <select id="preset">
+        <option value="custom" hidden>Custom puzzle</option>
+        <optgroup label="Famous">
+          <option value="famous:inkala-2012" selected>World's hardest (Inkala 2012)</option>
+          <option value="famous:ai-escargot-2006">AI Escargot</option>
+          <option value="famous:euler-96-grid-01">Project Euler 96</option>
+        </optgroup>
+        <optgroup label="Random 9×9">
+          <option value="random:9:easy">Easy</option>
+          <option value="random:9:medium">Medium</option>
+          <option value="random:9:hard">Hard</option>
+          <option value="random:9:extreme">Extreme</option>
+        </optgroup>
+        <optgroup label="Other sizes">
+          <option value="random:4">4×4</option>
+          <option value="random:6">6×6</option>
+          <option value="random:16">16×16</option>
+        </optgroup>
+      </select>
+    </label>
+    <label class="grow">Or paste a grid
+      <input id="paste" spellcheck="false" autocomplete="off" placeholder="81 characters, . or 0 for empty">
+    </label>
+    <button class="ghost" id="paste-load">Load</button>
+  </section>
+
+  <main>
+    <section class="view stage" id="view-play">
+      <div class="board-wrap">
+        <div id="play-board"></div>
+        <p class="caption" id="play-caption">Hover a cell to see its Markov blanket.</p>
+      </div>
+      <aside class="panel side">
+        <div class="row between"><p class="verdict idle" id="play-verdict" role="status">Checking…</p><p class="clock" id="play-clock">0:00</p></div>
+        <div class="pad" id="pad"></div>
+        <div class="row">
+          <button class="ghost" id="play-notes" aria-pressed="false">Notes</button>
+          <button class="ghost" id="play-erase">Erase</button>
+          <button class="ghost" id="play-undo">Undo</button>
+        </div>
+        <div class="row">
+          <button class="ghost" id="play-hint-btn">Hint</button>
+          <button class="ghost" id="play-check">Check</button>
+          <button class="ghost" id="play-restart">Restart</button>
+        </div>
+        <p class="hint" id="play-hint" role="status"></p>
+        <button class="primary" id="play-finish">Let the solver finish</button>
+        <p class="keys">Arrows move · digits fill · Backspace erases · N toggles notes</p>
+      </aside>
+    </section>
+
+    <section class="view stage" id="view-solve" hidden>
+      <div class="board-wrap">
+        <div id="solve-board"></div>
+        <p class="caption" id="solve-caption">Hover a cell to see its Markov blanket.</p>
+        <div class="transport">
+          <button class="ghost" id="to-start" aria-label="Back to start">⏮</button>
+          <button class="ghost" id="step-back" aria-label="Step back">◀</button>
+          <button class="primary round" id="play-pause" aria-label="Play">▶</button>
+          <button class="ghost" id="step-forward" aria-label="Step forward">▶▶</button>
+          <button class="ghost" id="to-end" aria-label="Jump to end">⏭</button>
+          <label class="speed">Speed <input type="range" id="speed" min="0" max="3" step="0.05" value="0.6"><output id="speed-label">4×</output></label>
+        </div>
+        <label class="scrub"><span class="sr">Replay position</span><input type="range" id="scrub" min="0" max="0" value="0"><output id="scrub-label">0 / 0</output></label>
+      </div>
+      <aside class="panel side">
+        <div class="chips" id="solve-algos" aria-label="Algorithm">
+          <button data-algo="bt" aria-pressed="false">Naive</button>
+          <button data-algo="fc" aria-pressed="false">Forward checking</button>
+          <button data-algo="mrv" aria-pressed="false">MRV</button>
+          <button data-algo="lcv" aria-pressed="false">MRV + LCV</button>
+          <button data-algo="mac" aria-pressed="true">MAC</button>
+          <button data-algo="mac+" aria-pressed="false">MAC+</button>
+          <button data-algo="dpll" aria-pressed="false">SAT</button>
+        </div>
+        <button class="primary" id="solve-run">Solve</button>
+        <p class="verdict idle" id="solve-summary" role="status">Pick an algorithm and press Solve.</p>
+        <p class="proof" id="solve-proof"></p>
+        <dl class="stats">
+          <div><dt>Nodes</dt><dd id="stat-nodes">0</dd></div>
+          <div><dt>Backtracks</dt><dd id="stat-backtracks">0</dd></div>
+          <div><dt>Prunes</dt><dd id="stat-prunes">0</dd></div>
+          <div><dt>Checks</dt><dd id="stat-checks">0</dd></div>
+        </dl>
+        <pre class="log" id="log" tabindex="0" aria-label="Event log"></pre>
+        <p class="keys">Space plays or pauses · ← → step</p>
+      </aside>
+    </section>
+
+    <section class="view" id="view-race" hidden>
+      <div class="panel race-controls">
+        <div class="row wrap" id="race-picks"></div>
+        <label>Event rate
+          <select id="race-speed">
+            <option value="500">500 events/s</option>
+            <option value="5000" selected>5,000 events/s</option>
+            <option value="20000">20,000 events/s</option>
+          </select>
+        </label>
+        <button class="primary" id="race-start">Start</button>
+        <p class="caption" id="race-status" role="status">Press Start to run all four on this puzzle.</p>
+      </div>
+      <div class="race-grid" id="race-grid"></div>
+    </section>
+
+    <section class="view stage" id="view-explain" hidden>
+      <div class="board-wrap">
+        <div id="explain-board"></div>
+        <div class="deduction panel" role="status">
+          <p class="kind" id="explain-kind"></p>
+          <p class="big" id="explain-text"></p>
+          <div class="row between">
+            <button class="ghost" id="explain-prev">Previous</button>
+            <span class="caption" id="explain-count"></span>
+            <button class="ghost" id="explain-next">Next</button>
+          </div>
+        </div>
+      </div>
+      <aside class="panel side">
+        <div class="chips" id="explain-algos" aria-label="Algorithm">
+          <button data-algo="bt" aria-pressed="false">Naive</button>
+          <button data-algo="mrv" aria-pressed="false">MRV</button>
+          <button data-algo="mac" aria-pressed="false">MAC</button>
+          <button data-algo="mac+" aria-pressed="true">MAC+</button>
+          <button data-algo="dpll" aria-pressed="false">SAT</button>
+        </div>
+        <ol class="steps" id="explain-list"></ol>
+        <p class="keys">← → step through the deductions</p>
+      </aside>
+    </section>
+
+    <section class="view stage" id="view-generate" hidden>
+      <div class="board-wrap"><div id="generate-board"></div></div>
+      <aside class="panel side">
+        <label>Size
+          <select id="generate-size">
+            <option value="4">4×4</option>
+            <option value="6">6×6</option>
+            <option value="9" selected>9×9</option>
+          </select>
+        </label>
+        <label>Difficulty
+          <select id="generate-difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+            <option value="extreme">Extreme (can take 25 s)</option>
+          </select>
+        </label>
+        <button class="primary" id="generate-run">Generate</button>
+        <p class="hint" id="generate-info" role="status">Every puzzle is checked to have exactly one solution, then proved unique by SAT.</p>
+        <div class="row" id="generate-actions" hidden>
+          <button class="ghost" id="generate-play">Play this</button>
+          <button class="ghost" id="generate-watch">Watch it solved</button>
+        </div>
+      </aside>
+    </section>
+
+    <section class="view bench" id="view-bench" hidden>
+      <p class="hint" id="bench-empty" hidden>No results yet. Run <code>python main.py bench</code> to fill <code>data/results/</code>.</p>
+      <div id="bench-body" hidden>
+        <p class="caption" id="bench-machine"></p>
+        <article class="panel"><h2>E1: search effort by technique</h2><p class="caption">Median search nodes on the rated sample, log scale. A run that hits the 10 s limit counts the nodes it reached, so bt and fc are lower bounds.</p><div class="chart"><canvas id="chart-e1" aria-label="Median nodes per algorithm and difficulty"></canvas></div><div class="scroll" id="table-e1"></div></article>
+        <article class="panel"><h2>E2: does effort predict the rating?</h2><p class="caption">Spearman ρ between dataset rating and nodes, and the share of puzzles solved with zero backtracks.</p><div class="scroll" id="table-e2"></div></article>
+        <article class="panel"><h2>E3: three formulations of one puzzle</h2><div class="scroll" id="table-e3"></div></article>
+        <article class="panel"><h2>E4: scaling from 4×4 to 16×16</h2><p class="caption">Median solve time in ms, log scale. A hollow point means the median run hit the 10 s limit, so the true time is higher.</p><div class="chart"><canvas id="chart-e4" aria-label="Median time by grid size"></canvas></div><div class="scroll" id="table-e4"></div></article>
+        <article class="panel"><h2>E5: generator quality</h2><div class="scroll" id="table-e5"></div></article>
+      </div>
+    </section>
+  </main>
+
+  <p class="toast" id="toast" role="alert"></p>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

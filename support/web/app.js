@@ -49,10 +49,12 @@ function setTheme(theme) {
 
 async function checkHealth() {
   const status = $("status");
+  const inBrowser = window.LPX_BACKEND === "pyodide";
+  if (inBrowser) $("status-text").textContent = "Loading the solver into your browser…";
   try {
     const data = await get("/api/health");
     status.classList.add("ok");
-    $("status-text").textContent = `Solver online · v${data.version}`;
+    $("status-text").textContent = `Solver ${inBrowser ? "ready (runs in your browser)" : "online"} · v${data.version}`;
   } catch {
     status.classList.add("down");
     $("status-text").textContent = "Solver offline";

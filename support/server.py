@@ -1,31 +1,32 @@
 """FastAPI app: JSON API for the solver plus the static web UI in support/web/.
 
-Routes follow plan.md section 3.7. Solving runs in FastAPI's thread pool, always under a timeout.
+Routes follow plan.md section 3.7. The handlers' logic lives in support/api.py, which the static
+build (support/site.py) also runs in the browser. Solving runs in FastAPI's thread pool, always under a timeout.
 """
-import csv
-import random
 from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import benchmark, sat
-from .explain import explain
-from .generator import GRADES, generate_sudoku
-from .sudoku import Grid, box_shape, parse, solution_string, solve_grid
-from .trace import Tracer
+from . import api, benchmark
+from .api import MAX_CHARS, ApiError
 
 WEB_DIR = Path(__file__).parent / "web"
-DATA_DIR = Path(__file__).parents[1] / "data" / "sudoku"
-MAX_CHARS = 1024  # a 16x16 grid with spaces fits; anything longer is not a puzzle we can solve in time
-RACE_TIMEOUT = 4.0
-GENERATE_BUDGET = 25.0
+ROOT = Path(__file__).parents[1]
+# Files the landing page shows, served from where they live in the repo rather than copied into web/.
+MEDIA = {
+    "demo.mp4": ROOT / "others" / "demo_video.mp4",
+    "poster.jpg": ROOT / "others" / "demo_poster.jpg",
+    "e1_nodes.png": ROOT / "data" / "results" / "e1_nodes.png",
+    "e4_scale.png": ROOT / "data" / "results" / "e4_scale.png",
+}
 
 Algorithm = Literal["bt", "fc", "mrv", "lcv", "mac", "mac+", "dpll"]
 
-app = FastAPI(title="LogicPuzzleX", version="0.1.0")
+app = FastAPI(title="LogicPuzzleX", version=api.VERSION)
 
 
 class SolveRequest(BaseModel):
@@ -51,88 +52,52 @@ class GenerateRequest(BaseModel):
     seed: int | None = None
 
 
-def _parse(text: str) -> Grid:
+def _call(fn, *args):
     try:
-        return parse(text)
-    except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
-
-
-def _solve(grid: Grid, algorithm: str, trace: bool, timeout: float) -> tuple:
-    tracer = Tracer(max_events=100_000 if trace else 0)
-    result = solve_grid(grid, algorithm, tracer, timeout)
-    body = {
-        "puzzle": {"type": "sudoku", "size": grid.size, "box": grid.box, "grid": str(grid)},
-        "algorithm": algorithm,
-        "status": result.status,
-        "solution": solution_string(result.solution, grid.size) if result.solution else None,
-        "stats": result.stats,
-        "events": tracer.events,
-        "truncated": tracer.truncated,
-    }
-    return body, result, tracer
+        return fn(*args)
+    except ApiError as error:
+        raise HTTPException(status_code=error.status, detail=error.detail) from error
 
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "version": app.version}
+    return api.health()
 
 
 @app.get("/api/puzzles")
 def puzzles(type: Literal["sudoku"] = "sudoku", difficulty: str | None = None, size: int | None = None,
             limit: int = 50) -> list:
     """Sample puzzles from data/: famous ones, the rated sample and generated ones."""
-    found = []
-    for line in (DATA_DIR / "famous.txt").read_text(encoding="utf-8").splitlines():
-        if line.strip() and not line.startswith("#"):
-            grid, name = line.split()
-            found.append({"id": name, "puzzle": grid, "difficulty": "famous", "size": 9})
-    if (DATA_DIR / "rated_sample.csv").exists():
-        with open(DATA_DIR / "rated_sample.csv", newline="", encoding="utf-8") as f:
-            found += [{"id": r["id"], "puzzle": r["puzzle"], "difficulty": r["bucket"], "size": 9}
-                      for r in csv.DictReader(f)]
-    for path in sorted((DATA_DIR / "generated").glob("*.txt")):
-        n = int(path.stem)
-        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines()):
-            grid, grade = line.split()
-            found.append({"id": f"generated-{n}-{i}", "puzzle": grid, "difficulty": grade, "size": n})
-    found = [p for p in found if (not difficulty or p["difficulty"] == difficulty) and (not size or p["size"] == size)]
-    return random.sample(found, min(max(limit, 0), len(found)))
+    return api.puzzles(difficulty, size, limit)
 
 
 @app.post("/api/solve")
 def solve(request: SolveRequest) -> dict:
-    grid = _parse(request.puzzle)
-    body, result, tracer = _solve(grid, request.algorithm, request.trace, request.timeout)
-    if not request.trace:
-        del body["events"]
-    if request.explain and request.trace:
-        body["explanation"] = explain(tracer.events, grid)
-    if request.prove and result.status == "solved":
-        try:
-            body["unique"] = sat.is_unique(grid, result.solution, request.timeout)
-        except TimeoutError:
-            body["unique"] = None
-    return body
+    return _call(api.solve, request.puzzle, request.algorithm, request.trace, request.explain, request.prove,
+                 request.timeout)
 
 
 @app.post("/api/race")
 def race(request: RaceRequest) -> dict:
-    grid = _parse(request.puzzle)
-    return {"results": [_solve(grid, a, True, RACE_TIMEOUT)[0] for a in request.algorithms]}
+    return _call(api.race, request.puzzle, request.algorithms)
 
 
 @app.post("/api/generate")
 def generate(request: GenerateRequest) -> dict:
-    puzzle, solution, grade = generate_sudoku(request.size, request.difficulty, request.seed, budget=GENERATE_BUDGET)
-    return {"type": "sudoku", "size": puzzle.size, "box": puzzle.box, "puzzle": str(puzzle),
-            "solution": solution_string(solution, puzzle.size), "grade": grade, "requested": request.difficulty,
-            "clues": sum(1 for v in puzzle.cells if v), "unique": True}
+    return api.generate(request.size, request.difficulty, request.seed)
 
 
 @app.get("/api/benchmarks")
 def benchmarks() -> dict:
     return benchmark.summary()
+
+
+@app.get("/media/{name}")
+def media(name: str) -> FileResponse:
+    path = MEDIA.get(name)
+    if path is None or not path.exists():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(path)
 
 
 # Mounted last so the /api routes above take priority over static files.

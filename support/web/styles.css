@@ -80,6 +80,7 @@ select option, select optgroup { background: var(--bg); color: var(--text); }
   border-bottom: 1px solid var(--line);
 }
 .brand { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; }
+a.brand { color: inherit; text-decoration: none; }
 .brand span {
   background: linear-gradient(90deg, var(--cyan), var(--violet));
   -webkit-background-clip: text;

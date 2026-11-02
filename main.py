@@ -5,6 +5,7 @@ Run `python main.py` to open the web app, or use a sub-command:
     solve      solve one puzzle from the command line
     bench      run the experiments behind the report figures
     generate   create new puzzles with a unique solution
+    site       build the static website (for GitHub Pages) into site/
 """
 from __future__ import annotations
 
@@ -88,6 +89,14 @@ def generate(args: argparse.Namespace) -> int:
     return 0
 
 
+def site(args: argparse.Namespace) -> int:
+    from support.site import build
+
+    out = build(Path(args.out))
+    print(f"Static site written to {out}/. Preview: python -m http.server -d {out}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="main.py",
@@ -124,6 +133,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--difficulty", choices=DIFFICULTIES, default="medium")
     p.add_argument("--count", type=int, default=1)
     p.set_defaults(func=generate)
+
+    p = sub.add_parser("site", help="build the static website (landing page + app) for GitHub Pages")
+    p.add_argument("--out", default="site", help="output folder")
+    p.set_defaults(func=site)
 
     return parser
 

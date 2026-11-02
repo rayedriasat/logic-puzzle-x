@@ -128,7 +128,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The web app opens at <http://127.0.0.1:8000>; API docs are at `/docs`.
+The overview page opens at <http://127.0.0.1:8000> and the app is at `/app.html`; API docs are at `/docs`.
 
 ## Usage
 
@@ -137,15 +137,31 @@ python main.py                                   # launch the web app
 python main.py solve "<puzzle>" --algo mac       # solve from the command line (add --explain for the reasoning)
 python main.py bench --exp e1                    # run an experiment, write data/results/ (see data/README.md)
 python main.py generate --difficulty hard        # create a puzzle with a unique solution
+python main.py site                              # build the static website for GitHub Pages into site/
 python -m pytest -q                              # run the tests
 ```
+
+## Deploy
+
+The website (an overview page with the demo video, plus the app at `app.html`) is published to **GitHub Pages** for free. Pages only serves static files, so the static build runs the solver's Python code in the visitor's browser with [Pyodide](https://pyodide.org) (WebAssembly). No server is needed. The first visit downloads about 12 MB of Pyodide, and solving runs roughly 3× slower than under `python main.py`.
+
+[.github/workflows/pages.yml](.github/workflows/pages.yml) builds and publishes the site on every push to `main`. One-time setup: in the repo, open **Settings → Pages** and set **Build and deployment → Source** to **GitHub Actions**. The site is then at `https://rayedriasat.github.io/logic-puzzle-x/`.
+
+To build and preview it locally:
+
+```bash
+python main.py site                 # writes site/
+python -m http.server -d site       # open http://localhost:8000
+```
+
+How it fits together: [support/api.py](support/api.py) holds the API logic that both front ends use. The FastAPI server ([support/server.py](support/server.py)) wraps it for local use. [support/site.py](support/site.py) zips it with the solver modules and `data/sudoku/` into `py.zip`, precomputes `benchmarks.json`, and sets `config.js` so that `api.js` sends requests to Web Workers ([support/web/pyworker.js](support/web/pyworker.js)) rather than to `/api`.
 
 ## Repository structure
 
 Organized as the course manual requires:
 
 ```text
-├── main.py            # entry point: serve | solve | bench | generate
+├── main.py            # entry point: serve | solve | bench | generate | site
 ├── README.md          # this file
 ├── requirements.txt   # Python libraries
 ├── data/              # datasets (see data/README.md)
@@ -168,7 +184,7 @@ This table is the route for our 4-minute code walkthrough.
 | 7 | [support/sat.py](support/sat.py) | CNF encoding, DPLL, uniqueness by entailment |
 | 8 | [support/explain.py](support/explain.py) · [support/generator.py](support/generator.py) | Deductions in English; unique graded puzzles |
 | 9 | [support/benchmark.py](support/benchmark.py) · [support/figures.py](support/figures.py) | Experiments E1–E5 |
-| 10 | [support/server.py](support/server.py) · [support/web/](support/web/) | API and UI (`replay.js` drives every animation) |
+| 10 | [support/api.py](support/api.py) · [support/server.py](support/server.py) · [support/web/](support/web/) | API and UI (`replay.js` drives every animation); `index.html` is the overview page, `app.html` the app |
 | 11 | [support/tests/](support/tests/) | pytest suite, run by CI on every push |
 
 ## Team

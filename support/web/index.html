@@ -4,201 +4,231 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LogicPuzzleX</title>
+  <meta name="description" content="An AI system that solves Sudoku as a constraint satisfaction problem and shows its reasoning live in the browser.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js" defer></script>
+  <script>
+    // Apply the saved theme before first paint; shared with the app (app.js uses the same key).
+    try { const t = localStorage.getItem("lpx-theme"); if (t) document.documentElement.dataset.theme = t; } catch { /* private window */ }
+  </script>
+  <style>
+    .lp { max-width: 72rem; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem) 4rem; }
+    .lp-nav { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; }
+    .lp-nav .spacer { flex: 1; }
+    .lp-nav a { color: var(--muted); text-decoration: none; font-weight: 600; }
+    .lp-nav a:hover { color: var(--text); }
+    .lp a.cta, .lp a.cta-ghost {
+      display: inline-flex; align-items: center; gap: .5rem; padding: .8rem 1.4rem; border-radius: .75rem;
+      font-weight: 800; text-decoration: none; font-size: 1.05rem; transition: transform .15s;
+    }
+    .lp a.cta { background: var(--accent); color: var(--on-accent); box-shadow: 0 8px 30px -8px var(--accent); }
+    .lp a.cta:hover { transform: translateY(-2px); }
+    .lp a.cta-ghost { border: 1px solid var(--line-strong); color: var(--text); }
+    .lp a.cta-ghost:hover { border-color: var(--text); }
+    .lp-nav a.cta { padding: .5rem 1rem; font-size: .95rem; color: var(--on-accent); }
+
+    .hero { text-align: center; padding: clamp(1.5rem, 5vw, 3.5rem) 0 2rem; }
+    .eyebrow { font-family: var(--font-mono); color: var(--cyan); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
+    .hero h1 { font-size: clamp(2.2rem, 6vw, 4.2rem); line-height: 1.05; font-weight: 800; letter-spacing: -.03em; margin: .6rem 0 1rem; }
+    .hero h1 span { background: linear-gradient(90deg, var(--cyan), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p.lead { color: var(--muted); font-size: clamp(1rem, 2vw, 1.2rem); max-width: 44rem; margin: 0 auto 1.6rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; }
+
+    .video-wrap { position: relative; margin: 2.5rem auto 0; border-radius: 1rem; overflow: hidden; border: 1px solid var(--line);
+      box-shadow: 0 30px 80px -30px rgba(0,0,0,.6); background: #000; aspect-ratio: 16 / 9; }
+    .video-wrap video { display: block; width: 100%; height: 100%; }
+    .unmute { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 0; cursor: pointer;
+      padding: .9rem 1.4rem; border-radius: 999px; font-weight: 800; font-size: 1.05rem;
+      background: rgba(0,0,0,.72); color: #fff; backdrop-filter: blur(6px); box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
+    .unmute:hover { background: rgba(0,0,0,.85); }
+
+    .lp section.block { margin-top: clamp(3rem, 8vw, 5.5rem); }
+    .lp h2 { font-size: clamp(1.5rem, 3.5vw, 2.1rem); letter-spacing: -.02em; margin-bottom: .5rem; }
+    .lp .sub { color: var(--muted); max-width: 46rem; margin-bottom: 1.6rem; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+    .card { border: 1px solid var(--line); background: var(--panel); border-radius: 1rem; padding: 1.2rem 1.25rem; }
+    .card h3 { font-size: 1.05rem; margin-bottom: .35rem; }
+    .card p { color: var(--muted); font-size: .95rem; }
+    .card .icon { font-size: 1.4rem; margin-bottom: .5rem; display: block; }
+
+    .formula { font-family: var(--font-mono); background: var(--log-bg); border: 1px solid var(--line); border-radius: .75rem;
+      padding: 1rem 1.2rem; overflow-x: auto; margin: 1rem 0; white-space: nowrap; }
+    .ladder { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+    .ladder span { font-family: var(--font-mono); font-size: .85rem; border: 1px solid var(--line); border-radius: 999px; padding: .35rem .8rem; background: var(--panel); }
+    .ladder span b { color: var(--cyan); }
+
+    .stats { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); margin-bottom: 1.5rem; }
+    .stat { border: 1px solid var(--line); background: var(--panel); border-radius: 1rem; padding: 1.1rem 1.25rem; }
+    .stat b { display: block; font-size: 2rem; font-weight: 800; letter-spacing: -.02em; color: var(--cyan); }
+    .stat span { color: var(--muted); font-size: .9rem; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 1rem; background: var(--panel); }
+    table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+    th, td { padding: .6rem 1rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    tr:last-child td { border-bottom: 0; }
+    td code { font-family: var(--font-mono); color: var(--violet); }
+    figure { margin-top: 1.25rem; }
+    figure img { width: 100%; border-radius: 1rem; border: 1px solid var(--line); background: #fff; }
+    figcaption { color: var(--muted); font-size: .9rem; margin-top: .5rem; }
+
+    .final { text-align: center; border: 1px solid var(--line); border-radius: 1.25rem; padding: clamp(2rem, 5vw, 3rem) 1.25rem;
+      background: radial-gradient(40rem 20rem at 50% 0%, var(--glow-a), transparent 70%), var(--panel); }
+    .final p { color: var(--muted); margin: .5rem auto 1.5rem; max-width: 36rem; }
+    .team { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+    .team .card p { font-size: .9rem; }
+    footer.lp-foot { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 3rem; }
+    footer.lp-foot a { color: var(--muted); }
+    @media (max-width: 640px) {
+      .lp-nav > a:not(.cta) { display: none; }
+      .unmute { font-size: .95rem; padding: .7rem 1.1rem; }
+    }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <p class="brand">Logic<span>Puzzle</span>X</p>
-    <nav class="tabs" aria-label="Views">
-      <button data-tab="play" aria-selected="true">Play</button>
-      <button data-tab="solve" aria-selected="false">Watch it think</button>
-      <button data-tab="race" aria-selected="false">Race</button>
-      <button data-tab="explain" aria-selected="false">Explain</button>
-      <button data-tab="generate" aria-selected="false">Generate</button>
-      <button data-tab="bench" aria-selected="false">Benchmarks</button>
+  <div class="lp">
+    <nav class="lp-nav" aria-label="Site">
+      <p class="brand">Logic<span>Puzzle</span>X</p>
+      <span class="spacer"></span>
+      <a href="#how">How it works</a>
+      <a href="#results">Results</a>
+      <a href="https://github.com/rayedriasat/logic-puzzle-x" target="_blank" rel="noopener">GitHub</a>
+      <button class="ghost" id="theme" aria-label="Toggle theme">◐</button>
+      <a class="cta" href="app.html">Open the app →</a>
     </nav>
-    <p class="status" id="status"><span class="dot"></span><span id="status-text">Checking solver…</span></p>
-    <button class="ghost" id="theme">◐</button>
-  </header>
 
-  <section class="puzzle-bar" id="puzzle-bar" aria-label="Choose a puzzle">
-    <label>Puzzle
-      <select id="preset">
-        <option value="custom" hidden>Custom puzzle</option>
-        <optgroup label="Famous">
-          <option value="famous:inkala-2012" selected>World's hardest (Inkala 2012)</option>
-          <option value="famous:ai-escargot-2006">AI Escargot</option>
-          <option value="famous:euler-96-grid-01">Project Euler 96</option>
-        </optgroup>
-        <optgroup label="Random 9×9">
-          <option value="random:9:easy">Easy</option>
-          <option value="random:9:medium">Medium</option>
-          <option value="random:9:hard">Hard</option>
-          <option value="random:9:extreme">Extreme</option>
-        </optgroup>
-        <optgroup label="Other sizes">
-          <option value="random:4">4×4</option>
-          <option value="random:6">6×6</option>
-          <option value="random:16">16×16</option>
-        </optgroup>
-      </select>
-    </label>
-    <label class="grow">Or paste a grid
-      <input id="paste" spellcheck="false" autocomplete="off" placeholder="81 characters, . or 0 for empty">
-    </label>
-    <button class="ghost" id="paste-load">Load</button>
-  </section>
-
-  <main>
-    <section class="view stage" id="view-play">
-      <div class="board-wrap">
-        <div id="play-board"></div>
-        <p class="caption" id="play-caption">Hover a cell to see its Markov blanket.</p>
+    <header class="hero">
+      <p class="eyebrow">CSE 440 · Artificial Intelligence · North South University</p>
+      <h1>One constraint engine.<br><span>Watch it think.</span></h1>
+      <p class="lead">LogicPuzzleX solves Sudoku from 4×4 to 16×16 as a constraint satisfaction problem, with backtracking search, constraint propagation and propositional logic. It shows every deduction live in your browser.</p>
+      <div class="actions">
+        <a class="cta" href="app.html">▶ Try the live solver</a>
+        <a class="cta-ghost" href="#features">See what it does</a>
       </div>
-      <aside class="panel side">
-        <div class="row between"><p class="verdict idle" id="play-verdict" role="status">Checking…</p><p class="clock" id="play-clock">0:00</p></div>
-        <div class="pad" id="pad"></div>
-        <div class="row">
-          <button class="ghost" id="play-notes" aria-pressed="false">Notes</button>
-          <button class="ghost" id="play-erase">Erase</button>
-          <button class="ghost" id="play-undo">Undo</button>
-        </div>
-        <div class="row">
-          <button class="ghost" id="play-hint-btn">Hint</button>
-          <button class="ghost" id="play-check">Check</button>
-          <button class="ghost" id="play-restart">Restart</button>
-        </div>
-        <p class="hint" id="play-hint" role="status"></p>
-        <button class="primary" id="play-finish">Let the solver finish</button>
-        <p class="keys">Arrows move · digits fill · Backspace erases · N toggles notes</p>
-      </aside>
-    </section>
 
-    <section class="view stage" id="view-solve" hidden>
-      <div class="board-wrap">
-        <div id="solve-board"></div>
-        <p class="caption" id="solve-caption">Hover a cell to see its Markov blanket.</p>
-        <div class="transport">
-          <button class="ghost" id="to-start" aria-label="Back to start">⏮</button>
-          <button class="ghost" id="step-back" aria-label="Step back">◀</button>
-          <button class="primary round" id="play-pause" aria-label="Play">▶</button>
-          <button class="ghost" id="step-forward" aria-label="Step forward">▶▶</button>
-          <button class="ghost" id="to-end" aria-label="Jump to end">⏭</button>
-          <label class="speed">Speed <input type="range" id="speed" min="0" max="3" step="0.05" value="0.6"><output id="speed-label">4×</output></label>
-        </div>
-        <label class="scrub"><span class="sr">Replay position</span><input type="range" id="scrub" min="0" max="0" value="0"><output id="scrub-label">0 / 0</output></label>
+      <div class="video-wrap">
+        <video id="demo" src="media/demo.mp4" poster="media/poster.jpg" playsinline controls preload="auto"></video>
+        <button class="unmute" id="unmute" hidden>🔊 Tap for sound</button>
       </div>
-      <aside class="panel side">
-        <div class="chips" id="solve-algos" aria-label="Algorithm">
-          <button data-algo="bt" aria-pressed="false">Naive</button>
-          <button data-algo="fc" aria-pressed="false">Forward checking</button>
-          <button data-algo="mrv" aria-pressed="false">MRV</button>
-          <button data-algo="lcv" aria-pressed="false">MRV + LCV</button>
-          <button data-algo="mac" aria-pressed="true">MAC</button>
-          <button data-algo="mac+" aria-pressed="false">MAC+</button>
-          <button data-algo="dpll" aria-pressed="false">SAT</button>
-        </div>
-        <button class="primary" id="solve-run">Solve</button>
-        <p class="verdict idle" id="solve-summary" role="status">Pick an algorithm and press Solve.</p>
-        <p class="proof" id="solve-proof"></p>
-        <dl class="stats">
-          <div><dt>Nodes</dt><dd id="stat-nodes">0</dd></div>
-          <div><dt>Backtracks</dt><dd id="stat-backtracks">0</dd></div>
-          <div><dt>Prunes</dt><dd id="stat-prunes">0</dd></div>
-          <div><dt>Checks</dt><dd id="stat-checks">0</dd></div>
-        </dl>
-        <pre class="log" id="log" tabindex="0" aria-label="Event log"></pre>
-        <p class="keys">Space plays or pauses · ← → step</p>
-      </aside>
-    </section>
+    </header>
 
-    <section class="view" id="view-race" hidden>
-      <div class="panel race-controls">
-        <div class="row wrap" id="race-picks"></div>
-        <label>Event rate
-          <select id="race-speed">
-            <option value="500">500 events/s</option>
-            <option value="5000" selected>5,000 events/s</option>
-            <option value="20000">20,000 events/s</option>
-          </select>
-        </label>
-        <button class="primary" id="race-start">Start</button>
-        <p class="caption" id="race-status" role="status">Press Start to run all four on this puzzle.</p>
-      </div>
-      <div class="race-grid" id="race-grid"></div>
-    </section>
-
-    <section class="view stage" id="view-explain" hidden>
-      <div class="board-wrap">
-        <div id="explain-board"></div>
-        <div class="deduction panel" role="status">
-          <p class="kind" id="explain-kind"></p>
-          <p class="big" id="explain-text"></p>
-          <div class="row between">
-            <button class="ghost" id="explain-prev">Previous</button>
-            <span class="caption" id="explain-count"></span>
-            <button class="ghost" id="explain-next">Next</button>
-          </div>
-        </div>
-      </div>
-      <aside class="panel side">
-        <div class="chips" id="explain-algos" aria-label="Algorithm">
-          <button data-algo="bt" aria-pressed="false">Naive</button>
-          <button data-algo="mrv" aria-pressed="false">MRV</button>
-          <button data-algo="mac" aria-pressed="false">MAC</button>
-          <button data-algo="mac+" aria-pressed="true">MAC+</button>
-          <button data-algo="dpll" aria-pressed="false">SAT</button>
-        </div>
-        <ol class="steps" id="explain-list"></ol>
-        <p class="keys">← → step through the deductions</p>
-      </aside>
-    </section>
-
-    <section class="view stage" id="view-generate" hidden>
-      <div class="board-wrap"><div id="generate-board"></div></div>
-      <aside class="panel side">
-        <label>Size
-          <select id="generate-size">
-            <option value="4">4×4</option>
-            <option value="6">6×6</option>
-            <option value="9" selected>9×9</option>
-          </select>
-        </label>
-        <label>Difficulty
-          <select id="generate-difficulty">
-            <option value="easy">Easy</option>
-            <option value="medium" selected>Medium</option>
-            <option value="hard">Hard</option>
-            <option value="extreme">Extreme (can take 25 s)</option>
-          </select>
-        </label>
-        <button class="primary" id="generate-run">Generate</button>
-        <p class="hint" id="generate-info" role="status">Every puzzle is checked to have exactly one solution, then proved unique by SAT.</p>
-        <div class="row" id="generate-actions" hidden>
-          <button class="ghost" id="generate-play">Play this</button>
-          <button class="ghost" id="generate-watch">Watch it solved</button>
-        </div>
-      </aside>
-    </section>
-
-    <section class="view bench" id="view-bench" hidden>
-      <p class="hint" id="bench-empty" hidden>No results yet. Run <code>python main.py bench</code> to fill <code>data/results/</code>.</p>
-      <div id="bench-body" hidden>
-        <p class="caption" id="bench-machine"></p>
-        <article class="panel"><h2>E1: search effort by technique</h2><p class="caption">Median search nodes on the rated sample, log scale. A run that hits the 10 s limit counts the nodes it reached, so bt and fc are lower bounds.</p><div class="chart"><canvas id="chart-e1" aria-label="Median nodes per algorithm and difficulty"></canvas></div><div class="scroll" id="table-e1"></div></article>
-        <article class="panel"><h2>E2: does effort predict the rating?</h2><p class="caption">Spearman ρ between dataset rating and nodes, and the share of puzzles solved with zero backtracks.</p><div class="scroll" id="table-e2"></div></article>
-        <article class="panel"><h2>E3: three formulations of one puzzle</h2><div class="scroll" id="table-e3"></div></article>
-        <article class="panel"><h2>E4: scaling from 4×4 to 16×16</h2><p class="caption">Median solve time in ms, log scale. A hollow point means the median run hit the 10 s limit, so the true time is higher.</p><div class="chart"><canvas id="chart-e4" aria-label="Median time by grid size"></canvas></div><div class="scroll" id="table-e4"></div></article>
-        <article class="panel"><h2>E5: generator quality</h2><div class="scroll" id="table-e5"></div></article>
+    <section class="block" id="features">
+      <h2>Six ways to explore the solver</h2>
+      <p class="sub">Each one is a tab in the app. They all share one puzzle, so you can load the world's hardest Sudoku and watch every technique take it on.</p>
+      <div class="grid">
+        <div class="card"><span class="icon">🎮</span><h3>Play</h3><p>Solve it yourself. After every move the engine checks that the board can still be finished, and its hints come with reasons.</p></div>
+        <div class="card"><span class="icon">🧠</span><h3>Watch it think</h3><p>An animated replay of the search. Candidates vanish as constraints propagate, and cells flash red on a backtrack.</p></div>
+        <div class="card"><span class="icon">🏁</span><h3>Algorithm race</h3><p>Naive backtracking vs forward checking vs MRV vs MAC, side by side on the same puzzle.</p></div>
+        <div class="card"><span class="icon">💬</span><h3>Explain</h3><p>Every deduction in plain English, e.g. “r5c3 = 7: only place in box 4 for a 7”.</p></div>
+        <div class="card"><span class="icon">✨</span><h3>Generate</h3><p>Fresh puzzles that are proved to have exactly one solution, graded Easy to Extreme.</p></div>
+        <div class="card"><span class="icon">📊</span><h3>Benchmarks</h3><p>The reproducible experiments behind every figure in our report, charted live.</p></div>
       </div>
     </section>
-  </main>
 
-  <p class="toast" id="toast" role="alert"></p>
-  <script type="module" src="app.js"></script>
+    <section class="block" id="how">
+      <h2>How it works</h2>
+      <p class="sub">Each puzzle becomes a <strong>factor graph</strong>: variables <code>X<sub>i</sub></code> with domains, and factors <code>f<sub>j</sub>(x) ∈ {0, 1}</code>. A complete assignment solves the puzzle when every factor is satisfied:</p>
+      <div class="formula">weight(x) = f<sub>1</sub>(x) · f<sub>2</sub>(x) · … · f<sub>m</sub>(x) = 1</div>
+      <p class="sub">A 9×9 Sudoku has 81 variables and 810 binary “≠” factors. The solver works up an <strong>algorithm ladder</strong>, adding one technique at each step:</p>
+      <div class="ladder">
+        <span><b>bt</b> naive backtracking</span>
+        <span><b>fc</b> + forward checking</span>
+        <span><b>mrv</b> + minimum remaining values</span>
+        <span><b>lcv</b> + least constraining value</span>
+        <span><b>mac</b> arc consistency (AC-3)</span>
+        <span><b>mac+</b> + hidden singles</span>
+        <span><b>dpll</b> CNF + DPLL</span>
+      </div>
+    </section>
+
+    <section class="block" id="results">
+      <h2>What each technique buys</h2>
+      <p class="sub">1000 rated puzzles, 250 per difficulty bucket, 10 s limit per run. The solvers are pure Python, so the times compare techniques rather than measure raw speed.</p>
+      <div class="stats">
+        <div class="stat"><b>23×</b><span>fewer search nodes from MRV than from forward checking, the biggest single step</span></div>
+        <div class="stat"><b>100%</b><span>of puzzles solved by MAC, with a median of 44 ms</span></div>
+        <div class="stat"><b>67 ms</b><span>for the slowest puzzle with <code>mac+</code>, the fastest configuration</span></div>
+        <div class="stat"><b>208 ms</b><span>median to solve a 16×16 with <code>mac+</code>, the only algorithm that finishes them</span></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Algorithm</th><th>Median nodes</th><th>Median ms</th><th>Timed out</th></tr></thead>
+          <tbody>
+            <tr><td><code>bt</code></td><td>17,890</td><td>4,185</td><td>32.9%</td></tr>
+            <tr><td><code>fc</code></td><td>5,446</td><td>406</td><td>2.3%</td></tr>
+            <tr><td><code>mrv</code></td><td>210</td><td>27</td><td>0%</td></tr>
+            <tr><td><code>lcv</code></td><td>219</td><td>30</td><td>0%</td></tr>
+            <tr><td><code>mac</code></td><td>113</td><td>44</td><td>0%</td></tr>
+            <tr><td><code>mac+</code></td><td>58</td><td>24</td><td>0%</td></tr>
+            <tr><td><code>dpll</code></td><td>448</td><td>103</td><td>0%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <figure>
+        <img src="media/e1_nodes.png" alt="Search nodes per algorithm in each difficulty bucket" loading="lazy">
+        <figcaption>Search nodes per algorithm in each difficulty bucket. The bt and fc figures are lower bounds, because runs that hit the time limit count only the nodes they reached.</figcaption>
+      </figure>
+    </section>
+
+    <section class="block">
+      <div class="final">
+        <h2>Ready to watch it think?</h2>
+        <p>Load the world's hardest Sudoku, race four algorithms on it, or try to beat the engine yourself.</p>
+        <a class="cta" href="app.html">Open LogicPuzzleX →</a>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>Team</h2>
+      <p class="sub">CSE 440, Section 1, Group 2</p>
+      <div class="team">
+        <div class="card"><h3>Md Shihabul Alam Shihab</h3><p>CSP engine and search</p></div>
+        <div class="card"><h3>Rayed Riasat Rabbi</h3><p>Puzzle modeling, propagation, generator</p></div>
+        <div class="card"><h3>Rifat Imtiaze Ruddro</h3><p>Logic track, explanations, experiments</p></div>
+        <div class="card"><h3>Sayma Akhter Snigdha</h3><p>Web app, demo video, integration</p></div>
+      </div>
+    </section>
+
+    <footer class="lp-foot">
+      <a href="https://github.com/rayedriasat/logic-puzzle-x" target="_blank" rel="noopener">Source code and report on GitHub</a>
+    </footer>
+  </div>
+
+  <script>
+    // Try to start the demo with sound. Browsers refuse unmuted autoplay until the visitor has
+    // interacted with the site, so if they refuse, play muted and unmute on the first tap, click or key.
+    const video = document.getElementById("demo");
+    const unmute = document.getElementById("unmute");
+    let waitingForSound = false;
+
+    function enableSound() {
+      if (!waitingForSound) return;
+      waitingForSound = false;
+      unmute.hidden = true;
+      video.muted = false;
+      video.play().catch(() => {});
+    }
+
+    video.muted = false;
+    video.play().catch(() => {
+      video.muted = true;
+      waitingForSound = true;
+      unmute.hidden = false;
+      video.play().catch(() => {});
+    });
+    unmute.addEventListener("click", (event) => { event.stopPropagation(); enableSound(); });
+    ["pointerdown", "keydown", "touchstart"].forEach((type) =>
+      document.addEventListener(type, enableSound, { once: false, passive: true }));
+    video.addEventListener("volumechange", () => { if (!video.muted) { waitingForSound = false; unmute.hidden = true; } });
+
+    const theme = document.getElementById("theme");
+    theme.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem("lpx-theme", next); } catch { /* private window */ }
+    });
+  </script>
 </body>
 </html>
