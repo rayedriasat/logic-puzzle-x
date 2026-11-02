@@ -8,13 +8,16 @@ An AI system that solves **Sudoku** and **Kakuro** as constraint satisfaction pr
 
 *CSE 440: Artificial Intelligence · North South University · Section 1 · Group 2*
 
-[![Watch the LogicPuzzleX demo video](others/demo_poster.jpg)](others/demo_video.mp4)
+### 🌐 [Live website: rayedriasat.github.io/logic-puzzle-x](https://rayedriasat.github.io/logic-puzzle-x/)
 
-**[▶ Watch the demo video](others/demo_video.mp4)**
+[![Watch the LogicPuzzleX demo on the website](others/demo_poster.jpg)](https://rayedriasat.github.io/logic-puzzle-x/)
+
+**[▶ Watch the demo](https://rayedriasat.github.io/logic-puzzle-x/)** · **[🧩 Open the app](https://rayedriasat.github.io/logic-puzzle-x/app.html)**
 
 </div>
 
 > **Status: the Sudoku track is complete; Kakuro is next.** The roadmap is in [plan.md](plan.md).
+
 ## Highlights
 
 | Feature | What it does | Status |
@@ -145,7 +148,7 @@ python -m pytest -q                              # run the tests
 
 The website (an overview page with the demo video, plus the app at `app.html`) is published to **GitHub Pages** for free. Pages only serves static files, so the static build runs the solver's Python code in the visitor's browser with [Pyodide](https://pyodide.org) (WebAssembly). No server is needed. The first visit downloads about 12 MB of Pyodide, and solving runs roughly 3× slower than under `python main.py`.
 
-[.github/workflows/pages.yml](.github/workflows/pages.yml) builds and publishes the site on every push to `main`. One-time setup: in the repo, open **Settings → Pages** and set **Build and deployment → Source** to **GitHub Actions**. The site is then at `https://rayedriasat.github.io/logic-puzzle-x/`.
+[.github/workflows/pages.yml](.github/workflows/pages.yml) builds and publishes the site on every push to `main`. One-time setup: in the repo, open **Settings → Pages** and set **Build and deployment → Source** to **GitHub Actions**. The site is live at <https://rayedriasat.github.io/logic-puzzle-x/>.
 
 To build and preview it locally:
 
